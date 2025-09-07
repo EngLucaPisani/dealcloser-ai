@@ -1,0 +1,31 @@
+Subject: Quick idea to improve Acme SaaS’s outreach
+
+Hi Acme SaaS,
+
+Noticed challenges like Low reply rates on cold outreach (<2%), Non-personalized messaging across channels, High CAC due to manual prospecting cropping up a lot.
+We’re working on **AI Deal Closer — channel-aware, data-driven outreach generator** that helps teams:
+
+- Lifts reply rates by 2–4x with tailored copy
+- Multi-channel templates (Email, LinkedIn, Telegram, IG)
+- Pulls ICP data from YAML/CRM to auto-personalize
+- Exports ready-to-send drafts to your workflow
+- Saves 3–5 hours per rep each week
+
+
+If this resonates, happy to share a 3-minute demo or adapt it to your workflow.
+
+Best,
+Luca
+Hi Acme SaaS,
+
+I noticed your company is facing challenges such as: Low reply rates on cold outreach (<2%), Non-personalized messaging across channels, High CAC due to manual prospecting.
+I’d love to introduce our solution: **AI Deal Closer — channel-aware, data-driven outreach generator**.
+
+Here are the main benefits:
+- Lifts reply rates by 2–4x with tailored copy
+- Multi-channel templates (Email, LinkedIn, Telegram, IG)
+- Pulls ICP data from YAML/CRM to auto-personalize
+- Exports ready-to-send drafts to your workflow
+- Saves 3–5 hours per rep each week
+
+Would you like to discuss this further?

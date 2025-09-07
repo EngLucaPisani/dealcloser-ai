@@ -1,0 +1,10 @@
+Hey {{ name }} 👋
+
+We built **{{ offer }}** to help with {{ pain_points | join(", ") }}.
+Here’s what it can do:
+
+{% for b in benefits -%}
+- {{ b }}
+{% endfor %}
+
+Interested in a quick look?

@@ -1,0 +1,15 @@
+Subject: Quick idea to improve {{ name }}’s outreach
+
+Hi {{ name }},
+
+I noticed challenges like {{ pain_points | join(", ") }} coming up often.
+We built **{{ offer }}** to help with:
+
+{% for b in benefits -%}
+- {{ b }}
+{% endfor %}
+
+Would you be open to a quick 3-minute demo?
+
+Best,  
+Luca
