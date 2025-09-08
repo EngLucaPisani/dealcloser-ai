@@ -23,3 +23,15 @@ out/
 
 # env
 .env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Env
+.env
+.env.*
+
+# Output
+out/
