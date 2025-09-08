@@ -1,5 +1,8 @@
+LICENSE
+README.md
 pyproject.toml
 src/dealcloser/__init__.py
+src/dealcloser/app.py
 src/dealcloser/generator.py
 src/dealcloser/main.py
 src/dealcloser.egg-info/PKG-INFO

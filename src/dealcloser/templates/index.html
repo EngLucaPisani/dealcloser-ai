@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <title>DealCloser</title>
+    <style>
+      body { font-family: system-ui, sans-serif; max-width: 760px; margin: 2rem auto; }
+      textarea, input, select { width: 100%; padding: .6rem; margin: .35rem 0 1rem; }
+      .out { white-space: pre-wrap; border: 1px solid #ddd; padding: 1rem; border-radius: .5rem; background: #fafafa; }
+      .btn { padding: .6rem 1rem; }
+    </style>
+  </head>
+  <body>
+    <h1>Generate Message</h1>
+    <form method="POST" action="/generate">
+      <label>Channel</label>
+      <select name="channel">
+      <option value="email">Email</option>
+      <option value="dm">DM (generico)</option>
+      <option value="whatsapp">WhatsApp</option>
+      <option value="telegram">Telegram</option>
+      <option value="instagram">Instagram</option>
+      </select>
+
+      <label>Name/Company</label>
+      <input name="name" placeholder="Es. Luca" />
+
+      <label>Pain Points</label>
+      <textarea name="pain_points" rows="3"></textarea>
+
+      <label>Offer For Customer/Company</label>
+      <textarea name="offer" rows="2"></textarea>
+
+      <label>Benefits Offered By You</label>
+      <textarea name="benefits" rows="3"></textarea>
+
+      <button class="btn" type="submit">Generate</button>
+    </form>
+
+    {% if result %}
+      <h2>Result</h2>
+      <div class="out">{{ result }}</div>
+    {% endif %}
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul>
+          {% for m in messages %}<li>{{ m }}</li>{% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+  </body>
+</html>
