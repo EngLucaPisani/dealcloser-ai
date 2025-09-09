@@ -1,53 +1,99 @@
 <!doctype html>
-<html lang="it">
-  <head>
-    <meta charset="utf-8" />
-    <title>DealCloser</title>
-    <style>
-      body { font-family: system-ui, sans-serif; max-width: 760px; margin: 2rem auto; }
-      textarea, input, select { width: 100%; padding: .6rem; margin: .35rem 0 1rem; }
-      .out { white-space: pre-wrap; border: 1px solid #ddd; padding: 1rem; border-radius: .5rem; background: #fafafa; }
-      .btn { padding: .6rem 1rem; }
-    </style>
-  </head>
-  <body>
-    <h1>Generate Message</h1>
-    <form method="POST" action="/generate">
-      <label>Channel</label>
-      <select name="channel">
-      <option value="email">Email</option>
-      <option value="dm">DM (generico)</option>
-      <option value="whatsapp">WhatsApp</option>
-      <option value="telegram">Telegram</option>
-      <option value="instagram">Instagram</option>
-      </select>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>DealCloser AI – Generate Outreach Email</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:24px;max-width:900px}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:16px}.full{grid-column:1 / -1}
+    label{font-weight:600;margin-bottom:6px;display:block}
+    input,textarea,select{width:100%;padding:10px;border:1px solid #ccc;border-radius:8px}
+    textarea{min-height:120px}
+    button{padding:12px 18px;border:0;border-radius:10px;cursor:pointer}
+    .primary{background:#111;color:#fff}
+    .card{padding:18px;border:1px solid #e5e7eb;border-radius:12px}
+    .flash{padding:10px 12px;border-radius:8px;margin-bottom:12px}
+    .warn{background:#fff8e1}.err{background:#ffe5e5}
+    .badge{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px;margin-left:8px}
+    .ok{background:#e6ffe9;border:1px solid #a7f3d0}
+    .no{background:#fff1f2;border:1px solid #fecaca}
+  </style>
+</head>
+<body>
+  <h1>DealCloser AI</h1>
+  <p>Create a tailored outreach email in English.</p>
 
-      <label>Name/Company</label>
-      <input name="name" placeholder="Es. Luca" />
-
-      <label>Pain Points</label>
-      <textarea name="pain_points" rows="3"></textarea>
-
-      <label>Offer For Customer/Company</label>
-      <textarea name="offer" rows="2"></textarea>
-
-      <label>Benefits Offered By You</label>
-      <textarea name="benefits" rows="3"></textarea>
-
-      <button class="btn" type="submit">Generate</button>
-    </form>
-
-    {% if result %}
-      <h2>Result</h2>
-      <div class="out">{{ result }}</div>
+  <p>
+    OpenAI API:
+    {% if has_api %}
+      <span class="badge ok">loaded</span>
+    {% else %}
+      <span class="badge no">not set (.env)</span>
     {% endif %}
+  </p>
 
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        <ul>
-          {% for m in messages %}<li>{{ m }}</li>{% endfor %}
-        </ul>
-      {% endif %}
-    {% endwith %}
-  </body>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, msg in messages %}
+        <div class="flash {{ 'warn' if category=='warning' else 'err' if category=='danger' }}">{{ msg }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <form method="post" action="{{ url_for('generate') }}" class="card">
+    <div class="row">
+      <div>
+        <label for="mode">Generation mode</label>
+        <select id="mode" name="mode">
+          <option value="template" selected>Template (no AI)</option>
+          <option value="gpt">GPT (OpenAI)</option>
+        </select>
+      </div>
+      <div>
+        <label for="tone">Tone</label>
+        <select id="tone" name="tone">
+          <option value="professional" selected>Professional</option>
+          <option value="friendly">Friendly</option>
+          <option value="concise">Concise</option>
+          <option value="persuasive">Persuasive</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="recipient_name">Recipient name</label>
+        <input id="recipient_name" name="recipient_name" placeholder="e.g., Sarah">
+      </div>
+      <div>
+        <label for="company">Company</label>
+        <input id="company" name="company" placeholder="e.g., Acme Co.">
+      </div>
+      <div>
+        <label for="sender_name">Your name (signature)</label>
+        <input id="sender_name" name="sender_name" value="Luca">
+      </div>
+
+      <div class="full">
+        <label for="pain_points">Pain points (one per line)</label>
+        <textarea id="pain_points" name="pain_points" placeholder="Low reply rates&#10;Manual data entry&#10;Slow lead qualification"></textarea>
+      </div>
+
+      <div class="full">
+        <label for="offer">Offer (what you provide)</label>
+        <textarea id="offer" name="offer" placeholder="AI-powered outreach system that drafts tailored emails and syncs leads to CRM"></textarea>
+      </div>
+
+      <div class="full">
+        <label for="benefits">Benefits (one per line)</label>
+        <textarea id="benefits" name="benefits" placeholder="Save 10+ hours/week&#10;+20% reply rate&#10;Fewer manual errors"></textarea>
+      </div>
+    </div>
+
+    <div style="margin-top:16px">
+      <button class="primary" type="submit">Generate Email</button>
+    </div>
+  </form>
+
+  <p style="margin-top:16px;color:#6b7280">Tip: start with Template, then switch to GPT for higher personalization.</p>
+</body>
 </html>

@@ -1,20 +1,18 @@
 # DealCloser AI
 
-DealCloser AI is a **Python CLI tool** that leverages **AI + Jinja2 templates** to generate personalized multi-channel outreach messages (Email, LinkedIn, Telegram, Instagram) from structured **YAML data**.
+DealCloser AI is a simple MVP tool that generates **outreach emails in English** for founders and businesses.
 
 ## Features
-- **AI-enhanced copy generation** (ready to integrate with OpenAI or other LLMs)
-- CLI built with [Typer](https://typer.tiangolo.com/)
-- Reads Ideal Customer Profile (ICP) + Offer from YAML files
-- Generates personalized, ready-to-send outreach drafts
-- Supports multiple channels (Email, LinkedIn, IG, Telegram)
-- Outputs stored in the `out/` folder
+- Web form built with Flask + Jinja2
+- Two modes:
+  - **Template**: fast, no API required
+  - **GPT-powered**: more personalized (requires OpenAI API key)
+- Save and download output as `.txt`
+- Responsive, lightweight UI
 
-## Quick Start
+## Quickstart
 ```bash
-git clone https://github.com/EngLucaPisani/dealcloser-ai.git
-cd dealcloser-ai
-python3 -m venv .venv
-source .venv/bin/activate
+python3 -m venv .venv && source .venv/bin/activate
 pip install -e .
-dealcloser
+python src/dealcloser/app.py --host 0.0.0.0 --debug
+# open http://127.0.0.1:5000

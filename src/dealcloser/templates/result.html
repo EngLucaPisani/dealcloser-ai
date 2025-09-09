@@ -1,0 +1,15 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DealCloser AI – Result</title>
+<style>
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:24px;max-width:900px}
+pre{white-space:pre-wrap;background:#f8fafc;padding:16px;border-radius:12px;border:1px solid #e5e7eb}
+a.btn{display:inline-block;padding:10px 14px;border-radius:10px;background:#111;color:#fff;text-decoration:none}
+.badge{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px;margin-left:8px;background:#eef2ff;border:1px solid #c7d2fe}
+</style></head><body>
+<h1>Generated Email <span class="badge">{{ mode|upper }}</span></h1>
+<p>Copy, tweak if needed, or download the .txt file.</p>
+<pre>{{ email_text }}</pre>
+<p><a class="btn" href="{{ url_for('download', filename=filename) }}">Download .txt</a>
+&nbsp;&nbsp;<a href="{{ url_for('index') }}">← Generate another</a></p>
+</body></html>

@@ -1,15 +1,32 @@
-Subject: Quick idea to improve {{ name }}’s outreach
+Subject: {{ company }} × {{ sender_name }} — quick idea to remove {{ (pain_points[0] if pain_points else 'busywork')|lower }}
 
-Hi {{ name }},
+Hi {{ recipient_name or 'there' }},
 
-I noticed challenges like {{ pain_points | join(", ") }} coming up often.
-We built **{{ offer }}** to help with:
+I’m {{ sender_name }}. I build lightweight AI & automation systems for founders and lean teams.
 
-{% for b in benefits -%}
-- {{ b }}
-{% endfor %}
+Why I’m reaching out:
+{% if pain_points %}
+- {{ pain_points | join('\n- ') }}
+{% else %}
+- Manual busywork slows response times
+- Data is scattered across tools
+- Hard to keep consistent, high-quality outreach
+{% endif %}
 
-Would you be open to a quick 3-minute demo?
+Here’s the offer in one line:
+> {{ offer }}
 
-Best,  
-Luca
+What you can expect in the first 2 weeks:
+{% if benefits %}
+- {{ benefits | join('\n- ') }}
+{% else %}
+- Save 10+ hours/week by automating repetitive steps
+- +15–30% reply rate with tailored outreach
+- Clean CRM handoff with correct tags
+{% endif %}
+
+If relevant, I can spin a quick demo on your data and share it this week.
+Would a 15-minute call on Thu/Fri work?
+
+Best,
+{{ sender_name }}

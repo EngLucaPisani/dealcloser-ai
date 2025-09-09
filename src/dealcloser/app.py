@@ -1,187 +1,128 @@
-# src/dealcloser/app.py
-from __future__ import annotations
-
-import os
-import logging
-from typing import Dict, Any
-
-from flask import (
-    Flask,
-    render_template,
-    request,
-    redirect,
-    url_for,
-    flash,
-)
-from dotenv import load_dotenv, find_dotenv
+from flask import Flask, render_template, request, send_from_directory, redirect, url_for, flash
+from jinja2 import Environment, FileSystemLoader, select_autoescape
+from pathlib import Path
+from datetime import datetime
+from dotenv import load_dotenv
 from openai import OpenAI
+import os
 
-# --- ENV loading robusto (funziona anche se avvii fuori dalla root) ---
-dotenv_path = find_dotenv(usecwd=True) or ".env"
-load_dotenv(dotenv_path=dotenv_path)
-
-# --- Flask app ---
-# Con templates/ in src/dealcloser/templates (accanto a questo file) non serve indicare template_folder
+# --- Setup base ---
+load_dotenv()  # carica .env se presente
 app = Flask(__name__)
-app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET", "dev-secret")
-app.config["TEMPLATES_AUTO_RELOAD"] = True
+app.config["SECRET_KEY"] = "CHANGE_ME"
 
-# --- OpenAI client ---
+BASE_PATH = Path(__file__).resolve().parent
+TEMPLATES_PATH = BASE_PATH / "templates"
+OUT_PATH = BASE_PATH.parent.parent / "out"
+OUT_PATH.mkdir(parents=True, exist_ok=True)
+
+# Jinja2 per modalità "template"
+env = Environment(
+    loader=FileSystemLoader(str(TEMPLATES_PATH)),
+    autoescape=select_autoescape(["html", "xml", "j2"])
+)
+
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-if not OPENAI_API_KEY:
-    # Non blocchiamo l'import dell'app (per /healthz), ma avviseremo a runtime
-    app.logger.warning("OPENAI_API_KEY non impostata: la generazione AI fallirà.")
-client = OpenAI(api_key=OPENAI_API_KEY)
+client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 
-logging.basicConfig(level=logging.DEBUG)
+# --- Render con Jinja2 (senza AI) ---
+def render_email_template(recipient_name, company, pain_points, offer, benefits, tone, sender_name):
+    template = env.get_template("email.j2")
+    pp = [p.strip() for p in pain_points.split("\n") if p.strip()]
+    bn = [b.strip() for b in benefits.split("\n") if b.strip()]
+    return template.render(
+        recipient_name=(recipient_name or "there").strip(),
+        company=(company or "your company").strip(),
+        pain_points=pp,
+        offer=(offer or "AI-powered outreach system to remove busywork").strip(),
+        benefits=bn,
+        tone=(tone or "professional").strip(),
+        sender_name=(sender_name or "Luca").strip(),
+    )
 
+# --- Render con GPT (AI) ---
+def render_email_gpt(recipient_name, company, pain_points, offer, benefits, tone, sender_name):
+    if client is None:
+        raise RuntimeError("OPENAI_API_KEY is not set. Add it to .env")
 
-# ---------------------- Routes ----------------------
+    pp = [p.strip() for p in pain_points.split("\n") if p.strip()]
+    bn = [b.strip() for b in benefits.split("\n") if b.strip()]
+
+    system = (
+        "You are a senior sales copywriter who writes crisp, clean outreach emails in English. add other similar pain points connected with the first "
+        "Keep it human, specific, and under 800 words. Use a clear subject line. "
+        "Tone options: professional, friendly, concise, persuasive."
+        "Length: 800-850 words."
+    )
+    user = f"""
+Write an outreach email in English.
+
+Context:
+- Recipient name: {recipient_name or 'there'}
+- Company: {company or 'your company'}
+- Pain points (bulleted): - Expand each pain point into 2–3 lines of explanation. {pp if pp else ['Manual busywork', 'Scattered data', 'Slow lead qualification']}
+- Offer (one-liner): {offer or 'AI-powered outreach that drafts tailored emails and syncs to CRM'}
+- Expected outcomes/benefits: {bn if bn else ['Save 10+ hours/week', '+15–30% reply rate', 'Clean CRM handoff']}
+- Tone: {tone or 'professional'}
+- Sender name: {sender_name or 'Luca'}
+
+Constraints:
+- Subject line +  body
+- No buzzwords, no fluff
+- Make it actionable; propose a 15-min call this week
+"""
+
+    # Modello leggero economico (va benissimo per email)
+    resp = client.chat.completions.create(
+        model="gpt-4o-mini",
+        temperature=0.6,
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
+    )
+    return resp.choices[0].message.content.strip()
+
+# --- Routes ---
 @app.route("/", methods=["GET"])
-def home():
-    """
-    Mostra il form. 'result' None all'avvio.
-    """
-    return render_template("index.html", result=None)
-
+def index():
+    return render_template("index.html", has_api=bool(OPENAI_API_KEY))
 
 @app.route("/generate", methods=["POST"])
-def generate_view():
-    """
-    Legge i campi del form, costruisce il prompt in base al canale,
-    chiama OpenAI e renderizza il risultato su index.html
-    """
-    # --- Pre-check chiave ---
-    if not OPENAI_API_KEY:
-        flash("Manca OPENAI_API_KEY nel tuo .env. Impostala e riprova.")
-        return redirect(url_for("home"))
-
-    # --- Lettura campi base ---
-    channel = (request.form.get("channel") or "email").strip().lower()
-    name = (request.form.get("name") or "").strip()
-    pain_points = (request.form.get("pain_points") or "").strip()
-    offer = (request.form.get("offer") or "").strip()
-    benefits = (request.form.get("benefits") or "").strip()
-
-    # --- Nuovi campi per DM / Telegram / Instagram / WhatsApp ---
-    handle = (request.form.get("handle") or "").strip()            # @username o url
-    objective = (request.form.get("objective") or "").strip()      # es. "collaborazione", "demo", "call"
-    use_emojis = bool(request.form.get("use_emojis"))
-    use_linebreaks = bool(request.form.get("use_linebreaks"))
-
-    # --- Regole specifiche per canale ---
-    channel_rules: Dict[str, Dict[str, str]] = {
-        "email": {
-            "style": "tono professionale, soggetto chiaro, paragrafi brevi",
-            "length": "max 130 parole",
-            "cta": "chiudi con una call-to-action chiara (es. 'Posso mostrarti una demo di 10 minuti?')",
-        },
-        "whatsapp": {
-            "style": "conversazionale, diretto, evita muri di testo",
-            "length": "max 6-8 righe",
-            "cta": "chiedi conferma rapida (sì/no)",
-        },
-        "telegram": {
-            "style": "conciso, amichevole, evita formattazioni troppo complesse",
-            "length": "max 8-10 righe",
-            "cta": "invita a una breve call o reply veloce",
-        },
-        "instagram": {
-            "style": "tono umano, prima riga forte, 1-2 emoji rilevanti",
-            "length": "DM breve (max 500 caratteri)",
-            "cta": "chiedi un semplice 'ti va?' o 'posso mandarti 2 righe?'",
-        },
-        "dm": {
-            "style": "neutro per DM su piattaforme varie",
-            "length": "breve e leggibile su mobile",
-            "cta": "domanda a risposta facile",
-        },
-    }
-    rules = channel_rules.get(channel, channel_rules["dm"])
-
-    # --- Helper formattazione ---
-    lb = "\n" if use_linebreaks else " "
-    emoji_hint = (
-        "Puoi usare 1-2 emoji pertinenti (non forzate)."
-        if use_emojis
-        else "Non usare emoji."
-    )
-
-    # Normalizzazione handle (soft)
-    if handle and not handle.startswith("@") and "instagram.com" not in handle.lower():
-        handle = "@" + handle.lstrip("@")
-
-    # Obiettivo di default soft
-    if channel in ("telegram", "instagram", "whatsapp", "dm") and not objective:
-        objective = "aprire una breve conversazione e fissare una micro-call"
-
-    handle_hint = f"Destinatario/Profilo: {handle}." if handle else "Destinatario/Profilo: non specificato."
-
-    # --- Prompt ---
-    prompt = (
-        f"Sei un copywriter. Genera un messaggio per il canale fallo sempre in inglese qualsiasi cosa scrivi, sempre in inglese: {channel}.{lb}"
-        f"{handle_hint}{lb}"
-        f"Obiettivo: {objective or 'non specificato'}.{lb}"
-        f"Persona destinataria: {name or 'non specificata'}.{lb}"
-        f"Dolori: {pain_points or 'non specificati'}.{lb}"
-        f"Offerta: {offer or 'non specificata'}.{lb}"
-        f"Benefici: {benefits or 'non specificati'}.{lb}{lb}"
-        f"Regole di stile: {rules['style']}; {rules['length']}; {rules['cta']}. {emoji_hint}{lb}"
-        f"Formattazione: usa righe corte pensate per smartphone. Evita frasi lunghe. Evita gergo eccessivo.{lb}"
-        f"Output: fornisci SOLO il testo finale da inviare, senza preamboli o titoli."
-        f" Se canale=instagram, inizia con un gancio forte (prima riga)."
-        f" Se canale=telegram/whatsapp, rendi semplice rispondere."
-        f"{lb}{lb}"
-        f"Quando utile, separa con a-capo per leggibilità su mobile."
-    )
-
-    app.logger.debug(
-        f"[GEN] channel={channel} name={name!r} handle={handle!r} "
-        f"use_emojis={use_emojis} use_linebreaks={use_linebreaks}"
-    )
-
+def generate():
     try:
-        resp = client.chat.completions.create(
-            model="gpt-4o-mini",
-            temperature=0.7,
-            messages=[
-                {"role": "system", "content": "Sei un assistente di scrittura conciso e pratico."},
-                {"role": "user", "content": prompt},
-            ],
-        )
-        ai_text = (resp.choices[0].message.content or "").strip()
-        app.logger.debug(f"[GEN] AI OUTPUT (inizio): {ai_text[:200]}")
+        mode = request.form.get("mode", "template")  # "template" | "gpt"
+        recipient_name = request.form.get("recipient_name", "").strip()
+        company = request.form.get("company", "").strip()
+        pain_points = request.form.get("pain_points", "").strip()
+        offer = request.form.get("offer", "").strip()
+        benefits = request.form.get("benefits", "").strip()
+        tone = request.form.get("tone", "professional").strip()
+        sender_name = request.form.get("sender_name", "Luca").strip()
+
+        if not offer or not benefits:
+            flash("Please provide at least the Offer and the Benefits.", "warning")
+            return redirect(url_for("index"))
+
+        if mode == "gpt":
+            email_text = render_email_gpt(
+                recipient_name, company, pain_points, offer, benefits, tone, sender_name
+            )
+        else:
+            email_text = render_email_template(
+                recipient_name, company, pain_points, offer, benefits, tone, sender_name
+            )
+
+        filename = f"dealcloser_email_{mode}_{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}.txt"
+        (OUT_PATH / filename).write_text(email_text, encoding="utf-8")
+        return render_template("result.html", email_text=email_text, filename=filename, mode=mode)
     except Exception as e:
-        app.logger.exception("Errore durante la generazione AI")
-        flash(f"Errore durante la generazione: {e}")
-        return redirect(url_for("home"))
+        flash(f"Unexpected error: {e}", "danger")
+        return redirect(url_for("index"))
 
-    # --- Render con i campi utili per riempire di nuovo il form (quality-of-life) ---
-    ctx: Dict[str, Any] = {
-        "result": ai_text,
-        "channel": channel,
-        "name": name,
-        "pain_points": pain_points,
-        "offer": offer,
-        "benefits": benefits,
-        "handle": handle,
-        "objective": objective,
-        "use_emojis": use_emojis,
-        "use_linebreaks": use_linebreaks,
-    }
-    return render_template("index.html", **ctx)
+@app.route("/download/<path:filename>", methods=["GET"])
+def download(filename):
+    return send_from_directory(str(OUT_PATH), filename, as_attachment=True)
 
-
-@app.route("/healthz", methods=["GET"])
-def healthz():
-    """
-    Sonda semplice per verificare che l'app sia su.
-    """
-    return {"ok": True, "has_key": bool(OPENAI_API_KEY)}, 200
-
-
-# --- Entrypoint locale ---
 if __name__ == "__main__":
-    # Avvio comodo con: PYTHONPATH=src python -m dealcloser.app
-    # oppure: export PYTHONPATH=src; export FLASK_APP=dealcloser.app; flask run --debug
     app.run(host="0.0.0.0", port=5000, debug=True)
