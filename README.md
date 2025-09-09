@@ -1,18 +1,44 @@
-# DealCloser AI
+# DealCloser AI 🚀
 
-DealCloser AI is a simple MVP tool that generates **outreach emails in English** for founders and businesses.
+**DealCloser AI** is a Flask-based web app that generates crisp, tailored outreach emails using GPT models.
 
-## Features
-- Web form built with Flask + Jinja2
-- Two modes:
-  - **Template**: fast, no API required
-  - **GPT-powered**: more personalized (requires OpenAI API key)
-- Save and download output as `.txt`
-- Responsive, lightweight UI
+👉 **[Live Demo on Render](https://dealcloser-ai.onrender.com)**
 
-## Quickstart
+---
+
+## ✨ Features
+- Generate professional outreach emails with GPT (`gpt-4o-mini`)
+- Option to use Jinja2 templates for static emails
+- Export generated emails as `.txt` files
+- Simple web UI with form input
+
+---
+
+## 📸 Screenshots
+
+### Input Form
+![Form Screenshot](docs/screenshot_form.png)
+
+### Generated Email
+![Result Screenshot](docs/screenshot_result.png)
+
+*(replace with real screenshots once you capture them)*
+
+---
+
+## 🛠 Tech Stack
+- **Python 3**
+- **Flask** (backend)
+- **Jinja2** (templating)
+- **OpenAI API** (AI-generated emails)
+- **Render** (deployment)
+
+---
+
+## 🚀 Run locally
+Clone repo & install:
 ```bash
+git clone https://github.com/EngLucaPisani/dealcloser-ai.git
+cd dealcloser-ai
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e .
-python src/dealcloser/app.py --host 0.0.0.0 --debug
-# open http://127.0.0.1:5000
