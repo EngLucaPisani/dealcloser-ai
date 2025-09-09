@@ -6,8 +6,24 @@ from dotenv import load_dotenv
 from openai import OpenAI
 import os
 
-# --- Setup base ---
-load_dotenv()  # carica .env se presente
+# --- Setup base / ENV ---
+load_dotenv()  # carica .env in locale; su Render userai le Environment Variables
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_ORG_ID = os.getenv("OPENAI_ORG_ID")
+OPENAI_PROJECT_ID = os.getenv("OPENAI_PROJECT_ID")
+
+# Client OpenAI compatibile con sk-proj + org + project
+client = (
+    OpenAI(
+        api_key=OPENAI_API_KEY,
+        organization=OPENAI_ORG_ID,
+        project=OPENAI_PROJECT_ID,
+    )
+    if OPENAI_API_KEY
+    else None
+)
+
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "CHANGE_ME"
 
@@ -21,9 +37,6 @@ env = Environment(
     loader=FileSystemLoader(str(TEMPLATES_PATH)),
     autoescape=select_autoescape(["html", "xml", "j2"])
 )
-
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 
 # --- Render con Jinja2 (senza AI) ---
 def render_email_template(recipient_name, company, pain_points, offer, benefits, tone, sender_name):
@@ -49,9 +62,9 @@ def render_email_gpt(recipient_name, company, pain_points, offer, benefits, tone
     bn = [b.strip() for b in benefits.split("\n") if b.strip()]
 
     system = (
-        "You are a senior sales copywriter who writes crisp, clean outreach emails in English. add other similar pain points connected with the first "
+        "You are a senior sales copywriter who writes crisp, clean outreach emails in English. "
         "Keep it human, specific, and under 800 words. Use a clear subject line. "
-        "Tone options: professional, friendly, concise, persuasive."
+        "Tone options: professional, friendly, concise, persuasive. "
         "Length: 800-850 words."
     )
     user = f"""
@@ -60,19 +73,19 @@ Write an outreach email in English.
 Context:
 - Recipient name: {recipient_name or 'there'}
 - Company: {company or 'your company'}
-- Pain points (bulleted): - Expand each pain point into 2–3 lines of explanation. {pp if pp else ['Manual busywork', 'Scattered data', 'Slow lead qualification']}
+- Pain points (bulleted): - Expand each pain point into 2–3 lines of explanation. {pp if pp else ['Manual busywork', 'Low reply rates', 'Messy CRM handoff']}
 - Offer (one-liner): {offer or 'AI-powered outreach that drafts tailored emails and syncs to CRM'}
 - Expected outcomes/benefits: {bn if bn else ['Save 10+ hours/week', '+15–30% reply rate', 'Clean CRM handoff']}
 - Tone: {tone or 'professional'}
 - Sender name: {sender_name or 'Luca'}
 
 Constraints:
-- Subject line +  body
+- Subject line + body
 - No buzzwords, no fluff
 - Make it actionable; propose a 15-min call this week
 """
 
-    # Modello leggero economico (va benissimo per email)
+    
     resp = client.chat.completions.create(
         model="gpt-4o-mini",
         temperature=0.6,
@@ -98,7 +111,7 @@ def generate():
         offer = request.form.get("offer", "").strip()
         benefits = request.form.get("benefits", "").strip()
         tone = request.form.get("tone", "professional").strip()
-        sender_name = request.form.get("sender_name", "Luca").strip()
+        sender_name = request.form.get("sender_name", "Luca").strip()  # <-- aggiunta necessaria
 
         if not offer or not benefits:
             flash("Please provide at least the Offer and the Benefits.", "warning")
